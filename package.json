@@ -16,7 +16,7 @@
     "@mui/icons-material": "^5.15.15",
     "@mui/material": "^5.17.0",
     "@mui/styled-engine-sc": "^6.0.0-alpha.18",
-    "@reduxjs/toolkit": "^2.6.1",
+    "@reduxjs/toolkit": "^2.7.0",
     "axios": "^1.8.3",
     "dompurify": "^3.2.4",
     "dotenv": "^16.4.7",
