@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
 
 // Async thunk for login
 export const login = createAsyncThunk(
@@ -12,15 +12,10 @@ export const login = createAsyncThunk(
         throw new Error('Email and password are required');
       }
       
-      // Log request details for debugging (remove in production)
-      console.log('Sending login request with:', { email, password: '***' });
-      
       const response = await axios.post(`${API_URL}/auth/login`, { 
         email, 
         password 
       });
-      
-      console.log('Login response:', response.data);
       
       // Store tokens based on remember me option
       if (rememberMe) {
@@ -54,19 +49,21 @@ export const login = createAsyncThunk(
   }
 );
 
-// Async thunk for Microsoft authentication
+// Microsoft authentication thunk
 export const microsoftAuth = createAsyncThunk(
   'auth/microsoftAuth',
-  async ({ accessToken, rememberMe }, { rejectWithValue }) => {
+  async ({ code, rememberMe = false }, { rejectWithValue }) => {
     try {
-      if (!accessToken) {
-        throw new Error('Microsoft access token is required');
+      // Validate code
+      if (!code) {
+        throw new Error('No authorization code provided');
       }
       
-      console.log('Sending Microsoft auth request with token');
-      
-      const response = await axios.post(`${API_URL}/auth/microsoft`, { accessToken });
-      console.log('Microsoft auth response:', response.data);
+      // Exchange code for tokens
+      const response = await axios.post(
+        `${API_URL}/auth/microsoft`,
+        { code }
+      );
       
       // Store tokens based on remember me option
       if (rememberMe) {
@@ -89,7 +86,9 @@ export const microsoftAuth = createAsyncThunk(
       };
     } catch (error) {
       console.error('Microsoft auth error:', error.response?.data || error.message);
-      return rejectWithValue(error.response?.data || { error: error.message || 'Microsoft authentication failed' });
+      return rejectWithValue(
+        error.response?.data || { error: error.message || 'Microsoft authentication failed' }
+      );
     }
   }
 );
@@ -107,7 +106,6 @@ export const refreshToken = createAsyncThunk(
       }
       
       const response = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
-      console.log('Token refresh response:', response.data);
       
       // Update tokens in the same storage they were in
       if (localStorage.getItem('refreshToken')) {
@@ -139,7 +137,7 @@ export const refreshToken = createAsyncThunk(
   }
 );
 
-// Async thunk to restore session (formerly restoreSession, also exported as getCurrentUser for compatibility)
+// Async thunk to restore session
 export const restoreSession = createAsyncThunk(
   'auth/restoreSession',
   async (_, { rejectWithValue, dispatch }) => {
@@ -154,8 +152,6 @@ export const restoreSession = createAsyncThunk(
       const response = await axios.get(`${API_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
-      console.log('Session restored:', response.data);
       
       return {
         user: {
@@ -233,7 +229,6 @@ const authSlice = createSlice({
       state.success = false;
       state.message = '';
     },
-    // Add clearError as an alias for resetAuthState for backward compatibility
     clearError: (state) => {
       state.error = null;
     }
@@ -280,7 +275,7 @@ const authSlice = createSlice({
       })
       .addCase(microsoftAuth.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.error || 'Failed to authenticate with Microsoft';
+        state.error = action.payload?.error || 'Microsoft authentication failed';
         state.success = false;
         state.message = '';
       })
@@ -295,16 +290,15 @@ const authSlice = createSlice({
         state.token = action.payload.token;
         state.refreshToken = action.payload.refreshToken;
         state.isAuthenticated = true;
-        state.success = true;
-        state.message = 'Token refreshed successfully';
+        state.error = null;
       })
       .addCase(refreshToken.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.error || 'Failed to refresh token';
-        state.isAuthenticated = false;
         state.user = null;
         state.token = null;
         state.refreshToken = null;
+        state.isAuthenticated = false;
+        state.error = action.payload?.error || 'Failed to refresh token';
       })
       // Restore Session
       .addCase(restoreSession.pending, (state) => {
@@ -317,19 +311,22 @@ const authSlice = createSlice({
         state.token = action.payload.token;
         state.refreshToken = action.payload.refreshToken;
         state.isAuthenticated = true;
-        state.success = true;
-        state.message = 'Session restored';
+        state.error = null;
       })
       .addCase(restoreSession.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.error || 'No valid session found';
-        state.isAuthenticated = false;
         state.user = null;
         state.token = null;
         state.refreshToken = null;
+        state.isAuthenticated = false;
+        state.error = action.payload?.error || 'Session restoration failed';
       });
   },
 });
 
 export const { logout, resetAuthState, clearError } = authSlice.actions;
+
+// Create and export auth selector
+export const selectAuth = (state) => state.auth;
+
 export default authSlice.reducer;

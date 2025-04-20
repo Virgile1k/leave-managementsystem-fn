@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Check, AlertCircle } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
-import { login, microsoftAuth, resetAuthState, clearError } from '../redux/features/authSlice';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { login, resetAuthState, clearError } from '../redux/features/authSlice';
+import toast, { Toaster } from 'react-hot-toast';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -14,17 +15,41 @@ export default function LoginPage() {
   
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
 
   useEffect(() => {
+    // Check for error passed from Microsoft callback
+    if (location.state?.error) {
+      toast.error(location.state.error);
+      
+      // Clear the location state to prevent showing the error again on refresh
+      window.history.replaceState({}, document.title);
+    }
+
     // Clear any existing errors when component mounts
     dispatch(clearError());
-  }, [dispatch]);
+  }, [dispatch, location.state]);
 
   useEffect(() => {
-    // Redirect if authenticated
+    // Redirect if authenticated and show success toast
     if (isAuthenticated) {
-      navigate('/dashboard');
+      toast.success('Successfully logged in!', {
+        duration: 4000,
+        position: 'top-center',
+        style: {
+          background: 'linear-gradient(to right, #4f46e5, #7e22ce)',
+          color: '#fff',
+          borderRadius: '0.5rem',
+          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        },
+        icon: '👋',
+      });
+      
+      // Short delay before navigation for better UX
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1000);
     }
   }, [isAuthenticated, navigate]);
 
@@ -48,7 +73,7 @@ export default function LoginPage() {
     
     // Validate email and password before submitting
     if (!email || !password) {
-      // Add validation error handling if needed
+      toast.error('Please provide both email and password');
       return;
     }
     
@@ -56,13 +81,24 @@ export default function LoginPage() {
   };
 
   const handleMicrosoftLogin = () => {
-    // This would typically handle Microsoft OAuth flow
-    // For now, we'll just simulate it with a mock token
-    const mockMicrosoftAccessToken = "microsoft_auth_code_mock";
-    dispatch(microsoftAuth({ accessToken: mockMicrosoftAccessToken, rememberMe }));
+    // Store rememberMe preference in localStorage so it can be retrieved in the callback
+    localStorage.setItem('rememberMePreference', rememberMe);
     
-    // In a real implementation, you would redirect to Microsoft auth URL:
-    // window.location.href = `https://login.microsoftonline.com/{tenant-id}/oauth2/v2.0/authorize?client_id={client-id}&response_type=code&redirect_uri={redirect-uri}&response_mode=query&scope=openid%20profile%20email`;
+    // Get the Microsoft OAuth URL from the backend
+    // In production, this would be an API call to fetch the URL
+    
+    // For development, we can use this URL format based on your backend configuration
+    const msRedirectUri = encodeURIComponent(`${window.location.origin}/api/v1/auth/microsoft/callback`);
+    const scope = encodeURIComponent('openid profile email offline_access');
+    
+    // Replace with the correct client ID from your application.properties
+    const tenantId = '1648228f-b5d4-4e62-9ce5-431fb3cc0474';
+    const clientId = 'f7cef167-71bd-42f9-80b0-65ce44c8a2f5'; // CORRECTED: Using proper client ID
+    
+    const microsoftAuthUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${msRedirectUri}&response_mode=query&scope=${scope}`;
+    
+    // Redirect to Microsoft login
+    window.location.href = microsoftAuthUrl;
   };
 
   // Animation variants
@@ -87,6 +123,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 flex flex-col items-center justify-center p-4">
+      {/* Toast Component */}
+      <Toaster />
+      
       {/* Logo */}
       <motion.div
         initial={{ y: -20, opacity: 0 }}

@@ -4,6 +4,7 @@ import LandingPage from "../pages/LandingPage.jsx";
 import LoginPage from "../pages/LoginPage.jsx";
 import Dashboard from "../components/Dashboard.jsx"; // You'll need to create this
 import ProtectedRoute from "./ProtectedRoute.jsx";
+import MicrosoftCallback from "../components/MicrosoftCallback.jsx"
 
 const AllRoutes = () => {
   return (
@@ -11,6 +12,7 @@ const AllRoutes = () => {
       {/* Public Routes */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/api/v1/auth/microsoft/callback" element={<MicrosoftCallback />} />
       
       {/* Protected Routes */}
       <Route 
