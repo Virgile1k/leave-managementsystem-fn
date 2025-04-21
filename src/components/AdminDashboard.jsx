@@ -1,96 +1,84 @@
- // src/components/AdminDashboard.jsx
-import React, { useState } from 'react';
+import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../redux/features/authSlice';
-import { useNavigate, Link, Routes, Route } from 'react-router-dom';
-import ProfilePage from '../pages/ProfilePage.jsx';
+import { useNavigate, Routes, Route } from 'react-router-dom';
+import DashboardLayout from '../layouts/DashboardLayout';
+import ProfilePage from '../pages/ProfilePage';
+import DepartmentsList from "../components/DepartmentsList.jsx";
+import UsersPage from "../pages/UsersPage.jsx";
+import CalendarPage from "../pages/CalendarPage.jsx";
+import LeaveDashboard from "../pages/LeaveDashboardAllusers.jsx";
+import LeaveApplicationForm from "../components/leave/LeaveApplicationForm.jsx";
+import  LeaveApprovalDashboard from "../pages/LeaveApprovalDashboard.jsx";
+import  ManagersDisplay from "../pages/ManagersDisplay.jsx";
+import ManagerTeamView  from "../components/common/ManagerTeamView.jsx";
+import NotificationsPage from "../components/Notifications/NotificationsPage.jsx";
+import ReportsDashboard from "../pages/ReportsDashboard.jsx";
+import ReportWidget from "../components/reports/ReportWidget.jsx";
+import LeaveTypeManagement from "../components/leave/LeaveTypeManagement.jsx";
+import ExportReports from "../components/reports/ExportReports.jsx"
 
 // Dashboard Home Content Component
 const DashboardHome = () => (
-  <div className="bg-white rounded-lg shadow p-6">
-    <h1 className="text-2xl font-semibold text-gray-800 mb-4">Dashboard</h1>
-    <p className="text-gray-600">Welcome to your AfriHR dashboard. You are successfully logged in!</p>
+  <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <div className="bg-white rounded-lg shadow p-6">
+      <h1 className="text-2xl font-semibold text-gray-800 mb-4">Dashboard</h1>
+      <p className="text-gray-600">Welcome to your AfriHR dashboard. You are successfully logged in!</p>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+       
+      </div>
+      
+      <div className="mt-8">
+        <h2 className="text-lg font-medium text-gray-700 mb-3"></h2>
+        <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+          {/* Activity feed will be populated with real data from API */}
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+
+
+// Settings Component (for Admins)
+const Settings = () => (
+  <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <div className="bg-white rounded-lg shadow p-6">
+      <h1 className="text-2xl font-semibold text-gray-800 mb-4">Settings</h1>
+      <p className="text-gray-600">Configure system settings and preferences.</p>
+      {/* Settings content will be loaded from API */}
+    </div>
   </div>
 );
 
 const AdminDashboard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { user } = useSelector((state) => state.auth);
-  const [activeLink, setActiveLink] = useState('dashboard');
-
+  const { user } = useSelector(state => state.auth);
+  
   const handleLogout = () => {
     dispatch(logout());
     navigate('/login');
   };
 
-  const handleNavigation = (link) => {
-    setActiveLink(link);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">A</span>
-            </div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-700">AfriHR</span>
-          </div>
-          
-          <div className="flex items-center">
-            <div className="mr-4">
-              <p className="text-sm text-gray-600">Welcome, {user?.fullName}</p>
-              <p className="text-xs text-gray-500">{user?.role}</p>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-md text-sm hover:bg-indigo-100"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </header>
-      
-      <div className="flex flex-1">
-        {/* Sidebar Navigation */}
-        <aside className="w-64 bg-white shadow-sm">
-          <nav className="p-4">
-            <ul className="space-y-1">
-              <li>
-                <Link 
-                  to="/dashboard"
-                  onClick={() => handleNavigation('dashboard')}
-                  className={`block px-4 py-2 rounded-md ${activeLink === 'dashboard' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700 hover:bg-gray-50'}`}
-                >
-                  Dashboard
-                </Link>
-              </li>
-              <li>
-                <Link 
-                  to="/dashboard/profile"
-                  onClick={() => handleNavigation('profile')}
-                  className={`block px-4 py-2 rounded-md ${activeLink === 'profile' ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700 hover:bg-gray-50'}`}
-                >
-                  Profile
-                </Link>
-              </li>
-              {/* Add more navigation items as needed */}
-            </ul>
-          </nav>
-        </aside>
-        
-        {/* Main Content Area */}
-        <main className="flex-1 p-8">
-          <Routes>
-            <Route path="/" element={<DashboardHome />} />
-            <Route path="/profile" element={<ProfilePage />} />
-          </Routes>
-        </main>
-      </div>
-    </div>
+    <DashboardLayout>
+      <Routes>
+        <Route path="/" element={< ReportsDashboard />} />
+        <Route path="profile" element={<ProfilePage />} />
+        <Route path="leave-calendar" element={<CalendarPage />} />
+        <Route path="my-applications" element={<LeaveDashboard />} />
+        <Route path="apply-leave" element={<LeaveApplicationForm />} />
+        <Route path="team-overview" element={<ManagerTeamView  />} />
+        <Route path="approvals" element={<LeaveApprovalDashboard />} />
+        <Route path="users" element={<UsersPage />} />
+        <Route path="departments" element={<DepartmentsList />} />
+        <Route path="reports" element={< ExportReports />} />
+        <Route path="Notifications" element={<NotificationsPage />} />
+        <Route path="leavemanagement" element={<LeaveTypeManagement />} />
+      </Routes>
+    </DashboardLayout>
   );
 };
 

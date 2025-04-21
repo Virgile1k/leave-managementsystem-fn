@@ -92,8 +92,8 @@ export default function LoginPage() {
     const scope = encodeURIComponent('openid profile email offline_access');
     
     // Replace with the correct client ID from your application.properties
-    const tenantId = '1648228f-b5d4-4e62-9ce5-431fb3cc0474';
-    const clientId = 'f7cef167-71bd-42f9-80b0-65ce44c8a2f5'; // CORRECTED: Using proper client ID
+    const tenantId = '6c03dbed-7867-49e9-a279-93c5c7b6ef70';
+    const clientId = '110cadeb-83dd-46d0-80ef-927817d102d0'; // CORRECTED: Using proper client ID
     
     const microsoftAuthUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${msRedirectUri}&response_mode=query&scope=${scope}`;
     

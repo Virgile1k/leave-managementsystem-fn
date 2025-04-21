@@ -122,18 +122,18 @@ export const getAllUsers = createAsyncThunk(
   }
 );
 
-// Async thunk for fetching users by manager
-export const getUsersByManager = createAsyncThunk(
-  'users/getUsersByManager',
-  async (managerId, { rejectWithValue }) => {
+// Async thunk for fetching users by manager (my team)
+export const getMyTeam = createAsyncThunk(
+  'users/getMyTeam',
+  async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${API_URL}/users/manager/${managerId}`, {
+      const response = await axios.get(`${API_URL}/users/my-team`, {
         headers: { Authorization: `Bearer ${getToken()}` }
       });
       return response.data;
     } catch (error) {
-      console.error('Get users by manager error:', error.response?.data || error.message);
-      return rejectWithValue(error.response?.data || { error: error.message || 'Failed to fetch users by manager' });
+      console.error('Get my team error:', error.response?.data || error.message);
+      return rejectWithValue(error.response?.data || { error: error.message || 'Failed to fetch your team' });
     }
   }
 );
@@ -212,7 +212,7 @@ const usersSlice = createSlice({
     error: null,
     success: false,
     message: '',
-    usersByManager: {},
+    myTeam: [],
     usersByDepartment: {},
     usersByRole: {},
     searchResults: []
@@ -348,21 +348,18 @@ const usersSlice = createSlice({
         state.error = action.payload?.error || 'Failed to fetch users';
       })
       
-      // Get Users By Manager
-      .addCase(getUsersByManager.pending, (state) => {
+      // Get My Team
+      .addCase(getMyTeam.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(getUsersByManager.fulfilled, (state, action) => {
+      .addCase(getMyTeam.fulfilled, (state, action) => {
         state.loading = false;
-        state.usersByManager = {
-          ...state.usersByManager,
-          [action.meta.arg]: action.payload
-        };
+        state.myTeam = action.payload;
       })
-      .addCase(getUsersByManager.rejected, (state, action) => {
+      .addCase(getMyTeam.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.error || 'Failed to fetch users by manager';
+        state.error = action.payload?.error || 'Failed to fetch your team';
       })
       
       // Get Users By Department
@@ -431,7 +428,8 @@ const usersSlice = createSlice({
 
 export const { resetUsersState, clearUsersError, setCurrentUser } = usersSlice.actions;
 
-// Selector
+// Selectors
 export const selectUsers = (state) => state.users;
+export const selectCurrentUser = (state) => state.users.currentUser;
 
 export default usersSlice.reducer;

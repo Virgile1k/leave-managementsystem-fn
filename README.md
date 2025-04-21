@@ -1,12 +1,67 @@
-# React + Vite
+ # Leave Management System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Overview
 
-Currently, two official plugins are available:
+A web-based Leave Management System built with Vite and React to streamline employee leave requests, approvals, and tracking.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+[Live Demo](https://leave-management-system.example.com)
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Prerequisites
+
+- Node.js (v16.0 or higher)
+- npm or yarn
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Virgile1k/leave-managementsystem-fn.git
+   cd leave-managementsystem-fn
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   # or
+   yarn
+   ```
+
+3. Start the development server:
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+4. Open your browser and navigate to `http://localhost:5173`
+
+### Building for Production
+
+```bash
+npm run build
+# or
+yarn build
+```
+
+The build files will be in the `dist` directory.
+
+## Key Features
+
+- User authentication (employee, manager, admin)
+- Leave request submission and tracking
+- Leave approval workflow
+- Calendar view for team planning
+- Notification system
+- Leave balance tracking
+
+## Technologies Used
+
+- Vite
+- React
+- Tailwind CSS
+
+## Repository
+
+The project is hosted on GitHub: [https://leave-managementsystem-fn.pages.dev/](https://leave-managementsystem-fn.pages.dev/)

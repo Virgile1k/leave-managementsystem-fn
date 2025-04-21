@@ -14,7 +14,6 @@ import {
   Upload as FiUpload,
   Trash2 as FiTrash2,
   Save as FiSave,
-  UserCheck as FiUserCheck,
   Lock
 } from 'lucide-react';
 import PasswordChangeModal from '../components/modals/PasswordChangeModal';
@@ -29,10 +28,8 @@ const ProfilePage = () => {
     fullName: '',
     email: ''
   });
-  // Track whether an action was performed
   const [actionPerformed, setActionPerformed] = useState(false);
 
-  // Reset profile state on component mount and unmount
   useEffect(() => {
     dispatch(resetProfileState());
     dispatch(fetchUserProfile());
@@ -51,7 +48,6 @@ const ProfilePage = () => {
     }
   }, [userData]);
 
-  // Handle success and error messages only if an action was performed
   useEffect(() => {
     if (actionPerformed && success && message) {
       toast.success(message, {
@@ -70,7 +66,6 @@ const ProfilePage = () => {
         setIsEditing(false);
       }
 
-      // Reset the action flag and profile state
       setActionPerformed(false);
       dispatch(resetProfileState());
     }
@@ -85,7 +80,6 @@ const ProfilePage = () => {
         },
       });
 
-      // Reset the action flag and profile state
       setActionPerformed(false);
       dispatch(resetProfileState());
     }
@@ -105,13 +99,11 @@ const ProfilePage = () => {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         toast.error('Only image files are allowed');
         return;
       }
 
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast.error('Image size should be less than 5MB');
         return;
@@ -138,44 +130,38 @@ const ProfilePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 py-8 px-4">
-      {/* Toast Component */}
-      <Toaster />
+    <div className="h-full  from-indigo-100 via-purple-50 to-pink-100 p-4">
 
-      {/* Rest of the component remains the same */}
-      <div className="max-w-2xl mx-auto">
-
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+      <div className="max-w-lg mx-auto">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
           {/* Header */}
-          <div className="px-8 py-6 bg-gradient-to-r from-indigo-600 to-purple-700 relative overflow-hidden">
-            <div className="absolute -top-12 -right-12 w-32 h-32 bg-purple-500 opacity-20 rounded-full"></div>
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-indigo-500 opacity-20 rounded-full"></div>
-            <h2 className="text-2xl font-bold text-white text-center relative z-10">My Profile</h2>
-            <p className="text-indigo-100 text-center mt-2 relative z-10">Manage your personal information</p>
+          <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-purple-700 relative">
+            <h2 className="text-xl font-bold text-white text-center relative z-10">My Profile</h2>
+            <p className="text-indigo-100 text-center text-sm mt-1 relative z-10">Manage your information</p>
           </div>
 
-          <div className="p-8">
+          <div className="p-4">
             {/* Profile Image Section */}
-            <div className="flex flex-col items-center mb-8">
+            <div className="flex flex-col items-center mb-4">
               <div className="relative">
                 <Avatar
                   src={userData?.profilePicUrl}
                   name={userData?.fullName}
-                  size={120}
-                  className="border-4 border-gray-200 rounded-full"
+                  size={80}
+                  className="border-2 border-gray-200 rounded-full"
                 />
 
                 {imageUploading && (
                   <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
                   </div>
                 )}
               </div>
 
-              <div className="flex mt-4 space-x-2">
-                <label className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-lg shadow-sm cursor-pointer transition-all text-sm font-medium">
-                  <FiUpload className="h-4 w-4" />
-                  <span>Upload Image</span>
+              <div className="flex mt-3 space-x-2">
+                <label className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-md shadow-sm cursor-pointer transition-all text-xs font-medium">
+                  <FiUpload className="h-3 w-3" />
+                  <span>Upload</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -187,11 +173,11 @@ const ProfilePage = () => {
 
                 {userData?.profilePicUrl && (
                   <button
-                    className="flex items-center gap-2 px-4 py-2 border border-red-400 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition-all"
+                    className="flex items-center gap-1 px-3 py-1 border border-red-400 text-red-600 hover:bg-red-50 rounded-md text-xs font-medium transition-all"
                     onClick={handleImageDelete}
                     disabled={imageUploading}
                   >
-                    <FiTrash2 className="h-4 w-4" />
+                    <FiTrash2 className="h-3 w-3" />
                     <span>Remove</span>
                   </button>
                 )}
@@ -199,94 +185,85 @@ const ProfilePage = () => {
             </div>
 
             {/* Profile Details Form */}
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-5">
-                <div className="space-y-2">
-                  <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">Full Name</label>
-                  <input
-                    id="fullName"
-                    type="text"
-                    name="fullName"
-                    value={formData.fullName}
-                    onChange={handleInputChange}
-                    disabled={!isEditing || loading}
-                    className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 transition-all"
-                    placeholder="Full Name"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email Address</label>
-                  <input
-                    id="email"
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    disabled={true} // Email is not editable
-                    className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
-                    placeholder="Email Address"
-                  />
-                </div>
-                {/* Add this block after the email input section */}
-                <div className="space-y-2">
-                  <label htmlFor="department" className="block text-sm font-medium text-gray-700">Department</label>
-                  <input
-                    id="department"
-                    type="text"
-                    value={userData?.departmentName || 'Not Assigned'}
-                    disabled={true}
-                    className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
-                  />
-                </div>
-
-                {userData?.departmentName && (
-                  <div className="space-y-2">
-                    <label htmlFor="department" className="block text-sm font-medium text-gray-700">Department</label>
-                    <input
-                      id="department"
-                      type="text"
-                      value={userData.departmentName}
-                      disabled={true}
-                      className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
-                    />
-                  </div>
-                )}
-
-                {userData?.manager && (
-                  <div className="space-y-2">
-                    <label htmlFor="manager" className="block text-sm font-medium text-gray-700">Manager</label>
-                    <input
-                      id="manager"
-                      type="text"
-                      value={userData.manager.fullName}
-                      disabled={true}
-                      className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
-                    />
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <label htmlFor="role" className="block text-sm font-medium text-gray-700">Role</label>
-                  <input
-                    id="role"
-                    type="text"
-                    value={userData?.role}
-                    disabled={true}
-                    className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
-                  />
-                </div>
+            <form onSubmit={handleSubmit} className="space-y-3">
+              <div>
+                <label htmlFor="fullName" className="block text-xs font-medium text-gray-700">Full Name</label>
+                <input
+                  id="fullName"
+                  type="text"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleInputChange}
+                  disabled={!isEditing || loading}
+                  className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50 transition-all text-sm"
+                  placeholder="Full Name"
+                />
               </div>
 
-              <div className="pt-5 flex flex-wrap gap-3 justify-center">
+              <div>
+                <label htmlFor="email" className="block text-xs font-medium text-gray-700">Email Address</label>
+                <input
+                  id="email"
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  disabled={true}
+                  className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md bg-gray-100 text-gray-600 text-sm"
+                  placeholder="Email Address"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="department" className="block text-xs font-medium text-gray-700">Department</label>
+                <input
+                  id="department"
+                  type="text"
+                  value={userData?.departmentName || 'Not Assigned'}
+                  disabled={true}
+                  className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md bg-gray-100 text-gray-600 text-sm"
+                />
+              </div>
+
+              {userData?.manager && (
+                <div>
+                  <label htmlFor="manager" className="block text-xs font-medium text-gray-700">Manager</label>
+                  <input
+                    id="manager"
+                    type="text"
+                    value={userData.manager.fullName}
+                    disabled={true}
+                    className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md bg-gray-100 text-gray-600 text-sm"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label htmlFor="role" className="block text-xs font-medium text-gray-700">Role</label>
+                <input
+                  id="role"
+                  type="text"
+                  value={userData?.role}
+                  disabled={true}
+                  className="block w-full px-3 py-2 mt-1 border border-gray-300 rounded-md bg-gray-100 text-gray-600 text-sm"
+                />
+              </div>
+
+              <div className="pt-3 flex justify-center gap-2">
                 {!isEditing ? (
                   <>
-
+                    <button
+                      type="button" 
+                      onClick={() => setIsEditing(true)}
+                      className="px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-md shadow-sm text-xs font-medium"
+                    >
+                      Edit Profile
+                    </button>
                     <button
                       type="button"
-                      className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 bg-white hover:bg-gray-50 rounded-lg shadow-sm text-sm font-medium transition-all"
+                      className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 bg-white hover:bg-gray-50 rounded-md shadow-sm text-xs font-medium"
                       onClick={() => setShowPasswordModal(true)}
                     >
-                      <Lock className="h-4 w-4" />
+                      <Lock className="h-3 w-3" />
                       <span>Change Password</span>
                     </button>
                   </>
@@ -294,28 +271,28 @@ const ProfilePage = () => {
                   <>
                     <button
                       type="submit"
-                      className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-lg shadow-sm transition-all text-sm font-medium"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-md shadow-sm text-xs font-medium"
                       disabled={loading}
                     >
                       {loading ? (
                         <>
-                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
-                          Saving...
+                          <span className="ml-1">Saving...</span>
                         </>
                       ) : (
                         <>
-                          <FiSave className="h-4 w-4" />
-                          <span>Save Changes</span>
+                          <FiSave className="h-3 w-3" />
+                          <span className="ml-1">Save</span>
                         </>
                       )}
                     </button>
 
                     <button
                       type="button"
-                      className="px-4 py-2.5 border border-gray-300 bg-white hover:bg-gray-50 rounded-lg shadow-sm text-sm font-medium transition-all"
+                      className="px-3 py-1.5 border border-gray-300 bg-white hover:bg-gray-50 rounded-md shadow-sm text-xs font-medium"
                       onClick={() => {
                         setIsEditing(false);
                         if (userData) {

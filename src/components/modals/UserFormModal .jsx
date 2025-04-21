@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
   createUser, 
@@ -6,11 +6,12 @@ import {
   selectUsers,
   getAllManagers
 } from '../../redux/features/usersSlice';
-import { X as XIcon } from 'lucide-react';
+import { X as XIcon, Upload, User } from 'lucide-react';
 import { fetchAllDepartments } from '../../redux/features/departmentsSlice';
 
 const UserFormModal = ({ isOpen, onClose, user = null, setActionPerformed }) => {
   const dispatch = useDispatch();
+  const fileInputRef = useRef(null);
   const { loading, managers } = useSelector(selectUsers);
   const { departments } = useSelector(state => state.departments);
   
@@ -18,11 +19,14 @@ const UserFormModal = ({ isOpen, onClose, user = null, setActionPerformed }) => 
     email: '',
     fullName: '',
     password: '',
-    role: 'EMPLOYEE',
+    role: 'STAFF', // Changed default role from EMPLOYEE to STAFF
+    profilePicture: null,
     profilePicUrl: '',
     managerId: '',
     departmentId: ''
   });
+  
+  const [previewImage, setPreviewImage] = useState(null);
   
   // Fetch managers and departments when modal is opened
   useEffect(() => {
@@ -39,22 +43,32 @@ const UserFormModal = ({ isOpen, onClose, user = null, setActionPerformed }) => 
         email: user.email || '',
         fullName: user.fullName || '',
         password: '', // Don't populate password field when editing
-        role: user.role || 'EMPLOYEE',
+        role: user.role || 'STAFF', // Changed default from EMPLOYEE to STAFF
+        profilePicture: null,
         profilePicUrl: user.profilePicUrl || '',
         managerId: user.manager?.id || '',
         departmentId: user.departmentId || ''
       });
+      
+      // Set preview image if user has a profile pic
+      if (user.profilePicUrl) {
+        setPreviewImage(user.profilePicUrl);
+      } else {
+        setPreviewImage(null);
+      }
     } else {
       // Reset form when creating a new user
       setFormData({
         email: '',
         fullName: '',
         password: '',
-        role: 'EMPLOYEE',
+        role: 'STAFF', // Changed default from EMPLOYEE to STAFF
+        profilePicture: null,
         profilePicUrl: '',
         managerId: '',
         departmentId: ''
       });
+      setPreviewImage(null);
     }
   }, [user, isOpen]);
 
@@ -62,8 +76,26 @@ const UserFormModal = ({ isOpen, onClose, user = null, setActionPerformed }) => 
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
+  
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setFormData(prev => ({ ...prev, profilePicture: file }));
+      
+      // Create a preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewImage(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const handleImageUploadClick = () => {
+    fileInputRef.current.click();
+  };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Prepare payload - Exclude empty values and password if not provided
@@ -78,8 +110,18 @@ const UserFormModal = ({ isOpen, onClose, user = null, setActionPerformed }) => 
       payload.password = formData.password;
     }
     
-    // Include optional fields only if they have values
-    if (formData.profilePicUrl) {
+    // Handle image upload if a file is selected
+    if (formData.profilePicture) {
+      // In a real application, you would upload the image to a server/cloud storage
+      // and get back a URL to store in the database
+      // Here's a placeholder for that process:
+      
+      // const imageUrl = await uploadImageToServer(formData.profilePicture);
+      // payload.profilePicUrl = imageUrl;
+      
+      // For this example, we'll assume the image is processed and just use the name
+      payload.profilePicUrl = URL.createObjectURL(formData.profilePicture);
+    } else if (formData.profilePicUrl) {
       payload.profilePicUrl = formData.profilePicUrl;
     }
     
@@ -115,55 +157,94 @@ const UserFormModal = ({ isOpen, onClose, user = null, setActionPerformed }) => 
           <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
         </div>
 
-        {/* Center modal */}
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-          {/* Modal header */}
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-700 px-6 py-4 flex justify-between items-center">
-            <h3 className="text-lg font-medium text-white">
-              {user ? 'Edit User' : 'Add New User'}
+        {/* Center modal with increased width */}
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+          {/* Modal header with improved gradient */}
+          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-6 py-4 flex justify-between items-center">
+            <h3 className="text-xl font-semibold text-white">
+              {user ? 'Edit User Profile' : 'Add New Team Member'}
             </h3>
             <button
               onClick={onClose}
               className="text-white hover:text-indigo-200 transition-colors focus:outline-none"
             >
-              <XIcon className="h-5 w-5" />
+              <XIcon className="h-6 w-6" />
             </button>
           </div>
           
-          {/* Modal body */}
-          <div className="bg-white px-6 py-5">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email Address *
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="Enter email address"
-                  disabled={user !== null} // Email can't be changed for existing users
-                />
+          {/* Modal body with improved spacing */}
+          <div className="bg-white px-8 py-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Profile picture upload section */}
+              <div className="flex justify-center mb-6">
+                <div className="flex flex-col items-center">
+                  <div 
+                    className="w-32 h-32 rounded-full border-2 border-indigo-300 flex items-center justify-center overflow-hidden bg-gray-100 cursor-pointer hover:border-indigo-500 transition-colors"
+                    onClick={handleImageUploadClick}
+                  >
+                    {previewImage ? (
+                      <img 
+                        src={previewImage} 
+                        alt="Profile Preview" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="h-16 w-16 text-gray-400" />
+                    )}
+                  </div>
+                  
+                  <input 
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageChange}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  
+                  <button
+                    type="button"
+                    className="mt-3 flex items-center text-sm text-indigo-600 hover:text-indigo-800 focus:outline-none"
+                    onClick={handleImageUploadClick}
+                  >
+                    <Upload className="h-4 w-4 mr-1" />
+                    {previewImage ? 'Change Photo' : 'Upload Photo'}
+                  </button>
+                </div>
               </div>
               
-              <div>
-                <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  id="fullName"
-                  name="fullName"
-                  value={formData.fullName}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="Enter full name"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                    Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Enter email address"
+                    disabled={user !== null} // Email can't be changed for existing users
+                  />
+                </div>
+                
+                <div>
+                  <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    id="fullName"
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Enter full name"
+                  />
+                </div>
               </div>
               
               <div>
@@ -177,42 +258,49 @@ const UserFormModal = ({ isOpen, onClose, user = null, setActionPerformed }) => 
                   value={formData.password}
                   onChange={handleInputChange}
                   required={!user} // Password is required only for new users
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   placeholder={user ? "Leave empty to keep current password" : "Enter password"}
                 />
               </div>
               
-              <div>
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-                  Role *
-                </label>
-                <select
-                  id="role"
-                  name="role"
-                  value={formData.role}
-                  onChange={handleInputChange}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="EMPLOYEE">Employee</option>
-                  <option value="MANAGER">Manager</option>
-                  <option value="ADMIN">Admin</option>
-                </select>
-              </div>
-              
-              <div>
-                <label htmlFor="profilePicUrl" className="block text-sm font-medium text-gray-700 mb-1">
-                  Profile Picture URL
-                </label>
-                <input
-                  type="text"
-                  id="profilePicUrl"
-                  name="profilePicUrl"
-                  value={formData.profilePicUrl}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="Enter profile picture URL (optional)"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
+                    Role *
+                  </label>
+                  <select
+                    id="role"
+                    name="role"
+                    value={formData.role}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                  >
+                    <option value="STAFF">Staff</option>
+                    <option value="MANAGER">Manager</option>
+                    <option value="ADMIN">Admin</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label htmlFor="departmentId" className="block text-sm font-medium text-gray-700 mb-1">
+                    Department
+                  </label>
+                  <select
+                    id="departmentId"
+                    name="departmentId"
+                    value={formData.departmentId}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
+                  >
+                    <option value="">No Department</option>
+                    {departments?.map(department => (
+                      <option key={department.id} value={department.id}>
+                        {department.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
               
               <div>
@@ -224,7 +312,7 @@ const UserFormModal = ({ isOpen, onClose, user = null, setActionPerformed }) => 
                   name="managerId"
                   value={formData.managerId}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white"
                 >
                   <option value="">No Manager</option>
                   {managers.map(manager => (
@@ -235,38 +323,18 @@ const UserFormModal = ({ isOpen, onClose, user = null, setActionPerformed }) => 
                 </select>
               </div>
               
-              <div>
-                <label htmlFor="departmentId" className="block text-sm font-medium text-gray-700 mb-1">
-                  Department
-                </label>
-                <select
-                  id="departmentId"
-                  name="departmentId"
-                  value={formData.departmentId}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  <option value="">No Department</option>
-                  {departments?.map(department => (
-                    <option key={department.id} value={department.id}>
-                      {department.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="mt-6 flex justify-end space-x-3">
+              <div className="mt-8 flex justify-end space-x-4">
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="px-5 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-70"
+                  className="px-5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm disabled:opacity-70 transition-all"
                 >
                   {loading ? (
                     <>

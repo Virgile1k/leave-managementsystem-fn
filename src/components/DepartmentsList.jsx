@@ -1,252 +1,263 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
   fetchAllDepartments, 
+  selectDepartments, 
   deleteDepartment,
-  resetDepartmentState,
-  selectDepartments
+  assignDepartmentHead,
+  removeDepartmentHead
 } from '../redux/features/departmentsSlice';
-import { 
-  Building as BuildingIcon, 
-  Plus as PlusIcon,
-  Edit as EditIcon,
-  Trash2 as TrashIcon,
-  Users as UsersIcon,
-  Search as SearchIcon,
-  UserCheck as UserCheckIcon
-} from 'lucide-react';
-import toast, { Toaster } from 'react-hot-toast';
+import { getAllUsers, selectUsers } from '../redux/features/usersSlice';
 import DepartmentFormModal from '../components/modals/DepartmentFormModal';
-import { useNavigate } from 'react-router-dom';
+import { Trash, Edit, UserPlus, UserMinus } from 'lucide-react';
+import Spinner from '../components/common/Spinner';
+import AlertMessage from '../components/common/AlertMessage';
 
 const DepartmentsList = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const { departments, loading, error, success, message, isDeleting } = useSelector(selectDepartments);
-  
-  const [showFormModal, setShowFormModal] = useState(false);
-  const [editingDepartment, setEditingDepartment] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const { departments, loading, error, success, message } = useSelector(selectDepartments);
+  const { users, loading: usersLoading } = useSelector(selectUsers);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [actionPerformed, setActionPerformed] = useState(false);
+  const [showHeadModal, setShowHeadModal] = useState(false);
+  const [selectedHeadDepartment, setSelectedHeadDepartment] = useState(null);
+  const [selectedHeadId, setSelectedHeadId] = useState('');
+  
+  // Filter managers from users list
+  const managers = users ? users.filter(user => user.role === 'MANAGER') : [];
 
-  // Reset department state on component mount and unmount
   useEffect(() => {
-    dispatch(resetDepartmentState());
     dispatch(fetchAllDepartments());
-
-    return () => {
-      dispatch(resetDepartmentState());
-    };
+    dispatch(getAllUsers()); // Fetch all users instead of just managers
   }, [dispatch]);
 
-  // Handle success and error messages only if an action was performed
   useEffect(() => {
-    if (actionPerformed && success && message) {
-      toast.success(message, {
-        duration: 4000,
-        position: 'top-center',
-        style: {
-          background: 'linear-gradient(to right, #4f46e5, #7e22ce)',
-          color: '#fff',
-          borderRadius: '0.5rem',
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-        },
-        icon: '✅',
-      });
-
-      // Reset the action flag and department state
+    if (actionPerformed) {
+      dispatch(fetchAllDepartments());
       setActionPerformed(false);
-      dispatch(resetDepartmentState());
     }
+  }, [actionPerformed, dispatch]);
 
-    if (actionPerformed && error) {
-      toast.error(error, {
-        duration: 4000,
-        position: 'top-center',
-        style: {
-          borderRadius: '0.5rem',
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-        },
-      });
-
-      // Reset the action flag and department state
-      setActionPerformed(false);
-      dispatch(resetDepartmentState());
-    }
-  }, [success, error, message, dispatch, actionPerformed]);
-
-  const handleEdit = (department) => {
-    setEditingDepartment(department);
-    setShowFormModal(true);
+  const handleCreateDepartment = () => {
+    setSelectedDepartment(null);
+    setIsModalOpen(true);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this department? This action cannot be undone.')) {
-      setActionPerformed(true);
-      dispatch(deleteDepartment(id));
+  const handleEditDepartment = (department) => {
+    setSelectedDepartment(department);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteDepartment = (id) => {
+    if (window.confirm('Are you sure you want to delete this department?')) {
+      dispatch(deleteDepartment(id))
+        .unwrap()
+        .then(() => setActionPerformed(true))
+        .catch(error => console.error('Error deleting department:', error));
     }
   };
 
-  const handleFormClose = () => {
-    setShowFormModal(false);
-    setEditingDepartment(null);
+  const handleAssignHead = (department) => {
+    setSelectedHeadDepartment(department);
+    setSelectedHeadId(department.headId || '');
+    setShowHeadModal(true);
   };
 
-  // Filter departments based on search query
-  const filteredDepartments = departments.filter(dept => 
-    dept.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    dept.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (dept.headName && dept.headName.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const handleRemoveHead = (departmentId) => {
+    if (window.confirm('Are you sure you want to remove the department head?')) {
+      dispatch(removeDepartmentHead(departmentId))
+        .unwrap()
+        .then(() => setActionPerformed(true))
+        .catch(error => console.error('Error removing department head:', error));
+    }
+  };
+
+  const handleHeadAssignmentSubmit = (e) => {
+    e.preventDefault();
+    
+    if (selectedHeadId) {
+      dispatch(assignDepartmentHead({ 
+        departmentId: selectedHeadDepartment.id, 
+        headId: selectedHeadId 
+      }))
+        .unwrap()
+        .then(() => {
+          setActionPerformed(true);
+          setShowHeadModal(false);
+        })
+        .catch(error => console.error('Error assigning department head:', error));
+    }
+  };
+
+  const findManagerName = (headId) => {
+    if (!headId) return 'Not Assigned';
+    const manager = managers.find(m => m.id === headId);
+    return manager ? manager.fullName : 'Unknown';
+  };
 
   if (loading && departments.length === 0) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
-    );
+    return <Spinner />;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 py-8 px-4">
-      {/* Toast Component */}
-      <Toaster />
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-800">Departments Management</h1>
+        <button
+          onClick={handleCreateDepartment}
+          className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-md hover:from-indigo-700 hover:to-purple-700 transition-colors"
+        >
+          Add Department
+        </button>
+      </div>
 
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-          {/* Header */}
-          <div className="px-8 py-6 bg-gradient-to-r from-indigo-600 to-purple-700 relative overflow-hidden">
-            <div className="absolute -top-12 -right-12 w-32 h-32 bg-purple-500 opacity-20 rounded-full"></div>
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-indigo-500 opacity-20 rounded-full"></div>
-            <div className="flex flex-col sm:flex-row justify-between items-center relative z-10">
-              <div>
-                <h2 className="text-2xl font-bold text-white">Departments</h2>
-                <p className="text-indigo-100 mt-1">Manage company departments</p>
-              </div>
-              <button
-                onClick={() => setShowFormModal(true)}
-                className="mt-4 sm:mt-0 flex items-center gap-2 px-4 py-2 bg-white text-indigo-600 rounded-lg shadow hover:bg-indigo-50 transition-all text-sm font-medium"
-              >
-                <PlusIcon className="h-4 w-4" />
-                <span>Add Department</span>
-              </button>
-            </div>
-          </div>
+      {error && <AlertMessage type="error" message={error} />}
+      {success && <AlertMessage type="success" message={message} />}
 
-          {/* Search Bar */}
-          <div className="p-6 border-b border-gray-100">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <SearchIcon className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search departments by name, description, or head"
-                className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Departments List */}
-          <div className="overflow-x-auto">
-            {filteredDepartments.length > 0 ? (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department Head</th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employees</th>
-                    <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredDepartments.map((dept) => (
-                    <tr key={dept.id} className="hover:bg-indigo-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="flex-shrink-0 h-10 w-10 flex items-center justify-center bg-indigo-100 rounded-lg">
-                            <BuildingIcon className="h-5 w-5 text-indigo-600" />
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-medium text-gray-900">{dept.name}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-500 max-w-xs truncate">{dept.description}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {dept.headName ? (
-                          <div className="flex items-center">
-                            <UserCheckIcon className="h-4 w-4 mr-2 text-indigo-500" />
-                            <span className="text-sm text-gray-900">{dept.headName}</span>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-500">Not assigned</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <UsersIcon className="h-4 w-4 mr-2 text-indigo-500" />
-                          <span className="text-sm text-gray-900">{dept.numberOfEmployees || 0}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                        <div className="flex justify-center space-x-2">
-                          <button
-                            onClick={() => handleEdit(dept)}
-                            className="text-indigo-600 hover:text-indigo-900 p-1 rounded-full hover:bg-indigo-100 transition-colors"
-                          >
-                            <EditIcon className="h-5 w-5" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(dept.id)}
-                            className="text-red-600 hover:text-red-900 p-1 rounded-full hover:bg-red-100 transition-colors"
-                            disabled={isDeleting}
-                          >
-                            <TrashIcon className="h-5 w-5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department Head</th>
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {departments.length > 0 ? (
+              departments.map((department) => (
+                <tr key={department.id}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">{department.name}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-500 max-w-md truncate">{department.description}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900">
+                      {findManagerName(department.headId)}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex justify-end space-x-2">
+                      <button
+                        onClick={() => handleAssignHead(department)}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="Assign Department Head"
+                      >
+                        <UserPlus className="h-5 w-5" />
+                      </button>
+                      {department.headId && (
+                        <button
+                          onClick={() => handleRemoveHead(department.id)}
+                          className="text-red-600 hover:text-red-900"
+                          title="Remove Department Head"
+                        >
+                          <UserMinus className="h-5 w-5" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleEditDepartment(department)}
+                        className="text-indigo-600 hover:text-indigo-900"
+                      >
+                        <Edit className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteDepartment(department.id)}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        <Trash className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
             ) : (
-              <div className="flex flex-col items-center justify-center py-12">
-                <BuildingIcon className="h-16 w-16 text-gray-300 mb-4" />
-                <h3 className="text-lg font-medium text-gray-500">No departments found</h3>
-                {searchQuery ? (
-                  <p className="text-gray-400 mt-2">Try adjusting your search query</p>
-                ) : (
-                  <p className="text-gray-400 mt-2">Create a new department to get started</p>
-                )}
-                {!searchQuery && (
-                  <button
-                    onClick={() => setShowFormModal(true)}
-                    className="mt-4 flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition-all text-sm font-medium"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                    <span>Add Department</span>
-                  </button>
-                )}
-              </div>
+              <tr>
+                <td colSpan="4" className="px-6 py-4 text-center text-sm text-gray-500">
+                  No departments found
+                </td>
+              </tr>
             )}
-          </div>
-        </div>
+          </tbody>
+        </table>
       </div>
 
       {/* Department Form Modal */}
-      {showFormModal && (
-        <DepartmentFormModal
-          isOpen={showFormModal}
-          onClose={handleFormClose}
-          department={editingDepartment}
-          setActionPerformed={setActionPerformed}
-        />
+      <DepartmentFormModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        department={selectedDepartment}
+        setActionPerformed={setActionPerformed}
+        managers={managers} // Pass managers directly to the modal
+      />
+
+      {/* Department Head Assignment Modal */}
+      {showHeadModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            {/* Background overlay */}
+            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
+              <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+            </div>
+
+            {/* Center modal */}
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-4">
+                <h3 className="text-lg font-medium text-white">
+                  Assign Department Head
+                </h3>
+              </div>
+              
+              <div className="bg-white px-6 py-5">
+                <form onSubmit={handleHeadAssignmentSubmit} className="space-y-4">
+                  <div>
+                    <label htmlFor="headId" className="block text-sm font-medium text-gray-700 mb-1">
+                      Department: {selectedHeadDepartment?.name}
+                    </label>
+                    <select
+                      id="headId"
+                      name="headId"
+                      value={selectedHeadId}
+                      onChange={(e) => setSelectedHeadId(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      required
+                    >
+                      <option value="">-- Select Department Head --</option>
+                      {managers.length > 0 ? (
+                        managers.map(manager => (
+                          <option key={manager.id} value={manager.id}>
+                            {manager.fullName} ({manager.email})
+                          </option>
+                        ))
+                      ) : (
+                        <option disabled>No managers available</option>
+                      )}
+                    </select>
+                  </div>
+                  
+                  <div className="mt-6 flex justify-end space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowHeadModal(false)}
+                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      Assign Head
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

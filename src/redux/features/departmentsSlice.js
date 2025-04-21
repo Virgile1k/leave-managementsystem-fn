@@ -139,6 +139,42 @@ export const fetchDepartmentsByHead = createAsyncThunk(
   }
 );
 
+export const assignDepartmentHead = createAsyncThunk(
+  'departments/assignDepartmentHead',
+  async ({ departmentId, headId }, { rejectWithValue }) => {
+    try {
+      const api = configureAxiosInstance();
+      
+      const response = await api.put(`/departments/${departmentId}/head?headId=${headId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Assign department head error:', error.response?.data || error.message);
+      if (error.response?.status === 401) {
+        return rejectWithValue({ error: 'Your session has expired. Please log in again.' });
+      }
+      return rejectWithValue(error.response?.data || { error: error.message || 'Failed to assign department head' });
+    }
+  }
+);
+
+export const removeDepartmentHead = createAsyncThunk(
+  'departments/removeDepartmentHead',
+  async (departmentId, { rejectWithValue }) => {
+    try {
+      const api = configureAxiosInstance();
+      
+      const response = await api.delete(`/departments/${departmentId}/head`);
+      return response.data;
+    } catch (error) {
+      console.error('Remove department head error:', error.response?.data || error.message);
+      if (error.response?.status === 401) {
+        return rejectWithValue({ error: 'Your session has expired. Please log in again.' });
+      }
+      return rejectWithValue(error.response?.data || { error: error.message || 'Failed to remove department head' });
+    }
+  }
+);
+
 const departmentsSlice = createSlice({
   name: 'departments',
   initialState: {
@@ -291,6 +327,62 @@ const departmentsSlice = createSlice({
           state.isAuthenticated = false;
         }
       })
+
+      .addCase(assignDepartmentHead.pending, (state) => {
+        state.isUpdating = true;
+        state.error = null;
+        state.success = false;
+        state.message = '';
+      })
+      .addCase(assignDepartmentHead.fulfilled, (state, action) => {
+        state.isUpdating = false;
+        const index = state.departments.findIndex(dept => dept.id === action.payload.id);
+        if (index !== -1) {
+          state.departments[index] = action.payload;
+        }
+        state.currentDepartment = action.payload;
+        state.success = true;
+        state.message = 'Department head assigned successfully';
+        state.isAuthenticated = true;
+      })
+      .addCase(assignDepartmentHead.rejected, (state, action) => {
+        state.isUpdating = false;
+        state.error = action.payload?.error || 'Failed to assign department head';
+        state.success = false;
+        
+        if (action.payload?.error === 'Your session has expired. Please log in again.') {
+          state.isAuthenticated = false;
+        }
+      })
+      
+      // Remove Department Head
+      .addCase(removeDepartmentHead.pending, (state) => {
+        state.isUpdating = true;
+        state.error = null;
+        state.success = false;
+        state.message = '';
+      })
+      .addCase(removeDepartmentHead.fulfilled, (state, action) => {
+        state.isUpdating = false;
+        const index = state.departments.findIndex(dept => dept.id === action.payload.id);
+        if (index !== -1) {
+          state.departments[index] = action.payload;
+        }
+        state.currentDepartment = action.payload;
+        state.success = true;
+        state.message = 'Department head removed successfully';
+        state.isAuthenticated = true;
+      })
+      .addCase(removeDepartmentHead.rejected, (state, action) => {
+        state.isUpdating = false;
+        state.error = action.payload?.error || 'Failed to remove department head';
+        state.success = false;
+        
+        if (action.payload?.error === 'Your session has expired. Please log in again.') {
+          state.isAuthenticated = false;
+        }
+      })
+
       
       // Fetch Departments By Head
       .addCase(fetchDepartmentsByHead.pending, (state) => {
@@ -310,6 +402,12 @@ const departmentsSlice = createSlice({
           state.isAuthenticated = false;
         }
       });
+
+     
+     
+
+
+      
   }
 });
 
